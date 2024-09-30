@@ -41,14 +41,14 @@ class Lander:
 
     def apply_thrust(self):
         if self.fuel > 0:
-            thrust_x = math.sin(self.angle) * self.thrust
-            thrust_y = math.cos(self.angle) * self.thrust
+            thrust_x = -math.sin(self.angle) * self.thrust  # Correct direction for horizontal thrust
+            thrust_y = math.cos(self.angle) * self.thrust  # Correct direction for vertical thrust
             self.vx += thrust_x
             self.vy += thrust_y
             self.fuel -= 1  # Reduce fuel with each thrust
 
     def rotate(self, direction):
-        self.angle -= direction * ROTATION_SPEED
+        self.angle += direction * ROTATION_SPEED
 
     def update(self):
         self.x += self.vx
@@ -143,9 +143,9 @@ def game_loop(gravity, thrust):
         # Handle user input
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
-            lander.rotate(-1)
-        if keys[pygame.K_RIGHT]:
             lander.rotate(1)
+        if keys[pygame.K_RIGHT]:
+            lander.rotate(-1)
         if keys[pygame.K_SPACE]:
             lander.apply_thrust()
 
