@@ -35,6 +35,8 @@ class Lander:
         self.height = self.lander_image.get_height()
         self.gravity = gravity
         self.thrust = thrust
+        self.thrusting = False  # Flag for thrust animation
+        self.flame_image = pygame.transform.scale(pygame.image.load('flame.png'), (20, 30))  # Load thrust flame image
 
     def apply_gravity(self):
         self.vy += self.gravity
@@ -46,6 +48,9 @@ class Lander:
             self.vx += thrust_x
             self.vy += thrust_y
             self.fuel -= 1  # Reduce fuel with each thrust
+            self.thrusting = True  # Set thrust flag to True
+        else:
+            self.thrusting = False
 
     def rotate(self, direction):
         self.angle += direction * ROTATION_SPEED
@@ -54,11 +59,24 @@ class Lander:
         self.x += self.vx
         self.y += self.vy
         self.apply_gravity()
+        if not keys[pygame.K_SPACE]:
+            self.thrusting = False
 
     def draw(self, screen):
+        # Draw the lander with rotation
         rotated_image = pygame.transform.rotate(self.lander_image, -math.degrees(self.angle))
         new_rect = rotated_image.get_rect(center=(self.x, self.y))
         screen.blit(rotated_image, new_rect.topleft)
+
+        # Draw thrust flame if thrusting
+        if self.thrusting:
+            flame_offset_x = -math.sin(self.angle) * (self.height // 2)
+            flame_offset_y = math.cos(self.angle) * (self.height // 2)
+            flame_x = self.x + flame_offset_x
+            flame_y = self.y + flame_offset_y
+            rotated_flame = pygame.transform.rotate(self.flame_image, -math.degrees(self.angle))
+            flame_rect = rotated_flame.get_rect(center=(flame_x, flame_y))
+            screen.blit(rotated_flame, flame_rect.topleft)
 
 # Draw terrain and landing pad
 def draw_terrain(screen):
@@ -141,6 +159,7 @@ def game_loop(gravity, thrust):
                 running = False
 
         # Handle user input
+        global keys
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
             lander.rotate(1)
