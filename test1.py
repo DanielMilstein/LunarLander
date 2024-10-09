@@ -8,15 +8,21 @@ pygame.mixer.init()
 # Sounds
 thrust_sound = pygame.mixer.Sound('thrust.wav')
 crash_sound = pygame.mixer.Sound('crash.wav')
-landing_sound = pygame.mixer.music.load('landing.mp3')
-pygame.mixer.music.load('background_music.mp3')
+try:
+    landing_sound = pygame.mixer.Sound('landing.mp3')
+except FileNotFoundError:
+    landing_sound = None
+try:
+    background_music = pygame.mixer.Sound('background_music.mp3')
+except FileNotFoundError:
+    background_music = None
 
-pygame.mixer.music.play(-1)
+if background_music: background_music.play(-1)
 
 # Game Constants
 WIDTH, HEIGHT = 800, 600
 ROTATION_SPEED = 0.1
-MAX_FUEL = 1000
+MAX_FUEL = 100
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -32,11 +38,14 @@ RED = (255, 0, 0)
 # Lander class
 class Lander:
     def __init__(self, gravity, thrust):
-        self.x = WIDTH // 2
-        self.y = 100
+        import random
+        self.x = random.randint(50, WIDTH - 50)  # Random x position within screen bounds (leaving margin)
+        self.y = random.randint(50, HEIGHT // 2)  # Random y position above a certain threshold (upper half of screen)
+        self.angle = random.uniform(-math.pi / 4, math.pi / 4)  # Random angle between -45 and 45 degrees
+        
         self.vx = 0
         self.vy = 0
-        self.angle = 0  # In radians
+        
         self.fuel = MAX_FUEL
         self.alive = True
         self.lander_image = pygame.transform.scale(pygame.image.load('lander.png'), (40, 40))  # Load the lander image
@@ -72,12 +81,20 @@ class Lander:
             self.thrusting = False
 
     def draw(self, screen):
+        # Draw thrust flame if thrusting
+        if self.thrusting:
+            flame_offset_x = -math.sin(self.angle) * (self.height // 2)
+            flame_offset_y = math.cos(self.angle) * (self.height // 2)
+            flame_x = self.x + flame_offset_x
+            flame_y = self.y + flame_offset_y
+            rotated_flame = pygame.transform.rotate(self.flame_image, -math.degrees(self.angle))
+            flame_rect = rotated_flame.get_rect(center=(flame_x, flame_y))
+            screen.blit(rotated_flame, flame_rect.topleft)
+
         # Draw the lander with rotation
         rotated_image = pygame.transform.rotate(self.lander_image, -math.degrees(self.angle))
         new_rect = rotated_image.get_rect(center=(self.x, self.y))
         screen.blit(rotated_image, new_rect.topleft)
-
-        # Draw thrust flame if thrusting
         if self.thrusting:
             flame_offset_x = -math.sin(self.angle) * (self.height // 2)
             flame_offset_y = math.cos(self.angle) * (self.height // 2)
@@ -91,6 +108,12 @@ class Lander:
 def draw_terrain(screen):
     pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))  # Ground
     pygame.draw.rect(screen, WHITE, (350, 550, 100, 10))  # Landing pad
+
+# Draw fuel gauge
+def draw_fuel_gauge(screen, fuel):
+    font = pygame.font.SysFont(None, 24)
+    fuel_text = font.render(f'Fuel: {fuel}', True, BLACK)
+    screen.blit(fuel_text, (10, 10))
 
 # Check for collisions
 def check_collision(lander):
@@ -176,11 +199,13 @@ def game_loop(gravity, thrust):
         if keys[pygame.K_RIGHT]:
             lander.rotate(-1)
         if keys[pygame.K_SPACE]:
-            lander.apply_thrust()
-            if not pygame.mixer.Sound.get_num_channels(thrust_sound):
-                pygame.mixer.Sound.play(thrust_sound)  # Play sound if not already playing
+            if lander.fuel > 0:
+                lander.apply_thrust()
+                if not pygame.mixer.Sound.get_num_channels(thrust_sound):
+                    pygame.mixer.Sound.play(thrust_sound)  # Play sound if not already playing
         else:
-            pygame.mixer.Sound.stop(thrust_sound)
+            if pygame.mixer.Sound.get_num_channels(thrust_sound):
+                pygame.mixer.Sound.stop(thrust_sound)
 
         # Update lander position
         lander.update()
@@ -189,7 +214,7 @@ def game_loop(gravity, thrust):
         if check_collision(lander):
             if safe_landing(lander):
                 game_result = "You landed safely!"
-                pygame.mixer.Sound.play(landing_sound)
+                if landing_sound: landing_sound.play()
             else:
                 game_result = "You crashed!"
                 pygame.mixer.Sound.play(crash_sound)
@@ -202,6 +227,7 @@ def game_loop(gravity, thrust):
         screen.fill(WHITE)
         draw_terrain(screen)
         lander.draw(screen)
+        draw_fuel_gauge(screen, lander.fuel)
         pygame.display.flip()
 
         clock.tick(60)
