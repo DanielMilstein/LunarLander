@@ -3,6 +3,15 @@ import math
 
 # Initialize Pygame
 pygame.init()
+pygame.mixer.init()
+
+# Sounds
+thrust_sound = pygame.mixer.Sound('thrust.wav')
+crash_sound = pygame.mixer.Sound('crash.wav')
+landing_sound = pygame.mixer.music.load('landing.mp3')
+pygame.mixer.music.load('background_music.mp3')
+
+pygame.mixer.music.play(-1)
 
 # Game Constants
 WIDTH, HEIGHT = 800, 600
@@ -134,6 +143,7 @@ def game_loop(gravity, thrust):
     lander = Lander(gravity, thrust)
     running = True
     game_result = None
+    landed = False 
 
     while running:
         for event in pygame.event.get():
@@ -148,6 +158,10 @@ def game_loop(gravity, thrust):
             lander.rotate(-1)
         if keys[pygame.K_SPACE]:
             lander.apply_thrust()
+            if not pygame.mixer.Sound.get_num_channels(thrust_sound):
+                pygame.mixer.Sound.play(thrust_sound)  # Play sound if not already playing
+        else:
+            pygame.mixer.Sound.stop(thrust_sound)
 
         # Update lander position
         lander.update()
@@ -156,8 +170,13 @@ def game_loop(gravity, thrust):
         if check_collision(lander):
             if safe_landing(lander):
                 game_result = "You landed safely!"
+                pygame.mixer.Sound.play(landing_sound)
             else:
                 game_result = "You crashed!"
+                pygame.mixer.Sound.play(crash_sound)
+
+            pygame.display.flip() 
+            pygame.time.wait(2000)    
             running = False
 
         # Redraw screen
@@ -196,3 +215,4 @@ main()
 
 # Quit Pygame
 pygame.quit()
+pygame.mixer.music.stop()
