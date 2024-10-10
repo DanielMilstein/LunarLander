@@ -113,16 +113,24 @@ def draw_terrain(screen, difficulty):
         pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
         pygame.draw.rect(screen, WHITE, (350, 550, 100, 10))
     elif difficulty == 'medium':
-        pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
-        pygame.draw.rect(screen, RED, (300, 550, 200, 10))
+      pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
+      pygame.draw.lines(screen, WHITE, False, [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550), (500, 530), (600, 550), (700, 520), (WIDTH, 550)], 2)
+    # Adding flat landing pads for medium level
+      pygame.draw.rect(screen, WHITE, (150, 530, 40, 10))
+      pygame.draw.rect(screen, WHITE, (500, 530, 40, 10))
+
     elif difficulty == 'hard':
         pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
-        pygame.draw.polygon(screen, RED, [(200, 550), (300, 540), (400, 550), (500, 540), (600, 550)])
+        pygame.draw.lines(screen, WHITE, False, [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480), (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)], 2)
+        # Adding flat landing pads
+        pygame.draw.rect(screen, WHITE, (100, 520, 40, 10))
+        pygame.draw.rect(screen, WHITE, (400, 480, 40, 10))
+        pygame.draw.rect(screen, WHITE, (650, 500, 40, 10))
 
 # Draw fuel gauge
 def draw_fuel_gauge(screen, fuel):
     font = pygame.font.SysFont(None, 24)
-    fuel_text = font.render(f'Fuel: {fuel}', True, BLACK)
+    fuel_text = font.render(f'Fuel: {fuel}', True, WHITE)
     screen.blit(fuel_text, (10, 10))
 
 # Draw animated background with ASCII art stars
@@ -134,15 +142,41 @@ def draw_animated_background(screen, frame):
         screen.blit(star_surface, (x, y))
 
 # Check for collisions
-def check_collision(lander):
-    if lander.y + lander.height // 2 > 550:
-        if 350 <= lander.x <= 450:
-            if safe_landing(lander):
-                return 'landed'
-            else:
-                return 'crashed'
-        else:
+def check_collision(lander, difficulty):
+    terrain_points = []
+    if difficulty == 'easy':
+        if 350 <= lander.x <= 450 and lander.y + lander.height // 2 >= 550 and safe_landing(lander):
+            return 'landed'
+        elif lander.y + lander.height // 2 >= 550:
             return 'crashed'
+    elif difficulty == 'medium':
+        terrain_points = [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550), (500, 530), (600, 550), (700, 520), (WIDTH, 550)]
+        landing_pads = [(150, 530, 40), (500, 530, 40)]
+
+    elif difficulty == 'hard':
+        terrain_points = [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480), (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)]
+        landing_pads = [(100, 520, 40), (400, 480, 40), (650, 500, 40)]
+    
+    if terrain_points:
+        # Check collision with terrain lines
+        for i in range(len(terrain_points) - 1):
+            x1, y1 = terrain_points[i]
+            x2, y2 = terrain_points[i + 1]
+            if x1 <= lander.x <= x2 or x2 <= lander.x <= x1:
+                # Calculate line equation and check if lander is below the terrain
+                terrain_y = y1 + (y2 - y1) * ((lander.x - x1) / (x2 - x1))
+                if lander.y + lander.height // 2 > terrain_y:
+                    return 'crashed'
+        
+        # Check landing pad collision
+        if difficulty == 'hard':
+            for pad_x, pad_y, pad_width in landing_pads:
+                if pad_x <= lander.x <= pad_x + pad_width and lander.y + lander.height // 2 >= pad_y:
+                    if safe_landing(lander):
+                        return 'landed'
+                    else:
+                        return 'crashed'
+    
     return None
 
 # Determine if the landing is safe
@@ -239,7 +273,7 @@ def game_loop(gravity, thrust, difficulty):
         lander.update(keys)
 
         # Check for collisions
-        collision_result = check_collision(lander)
+        collision_result = check_collision(lander, difficulty)
         if collision_result == 'landed':
             if landing_sound:
                 landing_sound.play()
@@ -254,7 +288,7 @@ def game_loop(gravity, thrust, difficulty):
             thrust_channel.stop()
 
         # Redraw screen
-        screen.fill(WHITE)
+        screen.fill(BLACK)
         draw_animated_background(screen, frame)
         draw_terrain(screen, difficulty)
         lander.draw(screen)
@@ -277,9 +311,9 @@ def main():
         if difficulty == 'easy':
             gravity, thrust = 0.01, 0.15
         elif difficulty == 'medium':
-            gravity, thrust = 0.05, 0.15
+            gravity, thrust = 0.01, 0.15
         elif difficulty == 'hard':
-            gravity, thrust = 0.1, 0.15
+            gravity, thrust = 0.01, 0.15
         elif difficulty == 'quit':
             running = False
             break
