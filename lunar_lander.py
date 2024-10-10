@@ -1,20 +1,33 @@
 import pygame
 import math
 import itertools
+import os
+import sys
+
+# Function to find the absolute path to resources
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS (for onefile mode)
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
 
 # Sounds
-thrust_sound = pygame.mixer.Sound('thrust.wav')
-crash_sound = pygame.mixer.Sound('crash.wav')
+thrust_sound = pygame.mixer.Sound(resource_path('assets/thrust.wav'))
+crash_sound = pygame.mixer.Sound(resource_path('assets/crash.wav'))
 try:
-    landing_sound = pygame.mixer.Sound('landing.mp3')
+    landing_sound = pygame.mixer.Sound(resource_path('assets/landing.mp3'))
 except FileNotFoundError:
     landing_sound = None
 try:
-    background_music = pygame.mixer.Sound('background_music.mp3')
+    background_music = pygame.mixer.Sound(resource_path('assets/background_music.mp3'))
 except FileNotFoundError:
     background_music = None
 
@@ -61,13 +74,13 @@ class Lander:
 
         self.fuel = MAX_FUEL
         self.alive = True
-        self.lander_image = pygame.transform.scale(pygame.image.load('lander.png'), (40, 40))
+        self.lander_image = pygame.transform.scale(pygame.image.load(resource_path('assets/lander.png')), (40, 40))
         self.width = self.lander_image.get_width()
         self.height = self.lander_image.get_height()
         self.gravity = gravity
         self.thrust = thrust
         self.thrusting = False
-        self.flame_image = pygame.transform.scale(pygame.image.load('flame.png'), (20, 30))
+        self.flame_image = pygame.transform.scale(pygame.image.load(resource_path('assets/flame.png')), (20, 30))
 
     def apply_gravity(self):
         self.vy += self.gravity
@@ -214,9 +227,6 @@ def title_screen():
         # Instructions
         instructions = [
             'Press 1, 2, or 3 to select a difficulty level:',
-            '1. Easy - Gentle terrain with a single landing pad',
-            '2. Medium - Moderate terrain with multiple landing pads',
-            '3. Hard - Rugged terrain with challenging landing pads',
             '',
             'Use arrow keys (LEFT and RIGHT) to rotate the lander.',
             'Hold SPACE to apply thrust.',
