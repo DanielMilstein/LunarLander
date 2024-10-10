@@ -55,7 +55,7 @@ class Lander:
         self.x = random.randint(50, WIDTH - 50)  # Random x position within screen bounds (leaving margin)
         self.y = random.randint(50, HEIGHT // 2)  # Random y position above a certain threshold (upper half of screen)
         self.angle = random.uniform(-math.pi / 2, math.pi / 2)  # Random angle between -45 and 45 degrees
-        
+
         self.vx = 0
         self.vy = 0
 
@@ -113,15 +113,16 @@ def draw_terrain(screen, difficulty):
         pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
         pygame.draw.rect(screen, WHITE, (350, 550, 100, 10))
     elif difficulty == 'medium':
-      pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
-      pygame.draw.lines(screen, WHITE, False, [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550), (500, 530), (600, 550), (700, 520), (WIDTH, 550)], 2)
-    # Adding flat landing pads for medium level
-      pygame.draw.rect(screen, WHITE, (150, 530, 40, 10))
-      pygame.draw.rect(screen, WHITE, (500, 530, 40, 10))
-
+        pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
+        pygame.draw.lines(screen, WHITE, False, [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550),
+                                                 (500, 530), (600, 550), (700, 520), (WIDTH, 550)], 2)
+        # Adding flat landing pads for medium level
+        pygame.draw.rect(screen, WHITE, (150, 530, 40, 10))
+        pygame.draw.rect(screen, WHITE, (500, 530, 40, 10))
     elif difficulty == 'hard':
         pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
-        pygame.draw.lines(screen, WHITE, False, [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480), (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)], 2)
+        pygame.draw.lines(screen, WHITE, False, [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480),
+                                                 (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)], 2)
         # Adding flat landing pads
         pygame.draw.rect(screen, WHITE, (100, 520, 40, 10))
         pygame.draw.rect(screen, WHITE, (400, 480, 40, 10))
@@ -144,39 +145,50 @@ def draw_animated_background(screen, frame):
 # Check for collisions
 def check_collision(lander, difficulty):
     terrain_points = []
+    landing_pads = []
     if difficulty == 'easy':
-        if 350 <= lander.x <= 450 and lander.y + lander.height // 2 >= 550 and safe_landing(lander):
-            return 'landed'
-        elif lander.y + lander.height // 2 >= 550:
+        if 350 <= lander.x <= 450 and lander.y + lander.height // 2 >= 550:
+            if safe_landing(lander):
+                return 'landed'
+            else:
+                return 'crashed'
+        elif lander.y + lander.height // 2 >= HEIGHT:
             return 'crashed'
     elif difficulty == 'medium':
-        terrain_points = [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550), (500, 530), (600, 550), (700, 520), (WIDTH, 550)]
+        terrain_points = [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550),
+                          (500, 530), (600, 550), (700, 520), (WIDTH, 550)]
         landing_pads = [(150, 530, 40), (500, 530, 40)]
-
     elif difficulty == 'hard':
-        terrain_points = [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480), (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)]
+        terrain_points = [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480),
+                          (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)]
         landing_pads = [(100, 520, 40), (400, 480, 40), (650, 500, 40)]
-    
+
     if terrain_points:
         # Check collision with terrain lines
         for i in range(len(terrain_points) - 1):
             x1, y1 = terrain_points[i]
             x2, y2 = terrain_points[i + 1]
-            if x1 <= lander.x <= x2 or x2 <= lander.x <= x1:
-                # Calculate line equation and check if lander is below the terrain
-                terrain_y = y1 + (y2 - y1) * ((lander.x - x1) / (x2 - x1))
-                if lander.y + lander.height // 2 > terrain_y:
+            if (x1 <= lander.x <= x2) or (x2 <= lander.x <= x1):
+                if x2 != x1:
+                    terrain_y = y1 + (y2 - y1) * ((lander.x - x1) / (x2 - x1))
+                else:
+                    terrain_y = (y1 + y2) / 2  # Handle vertical lines
+                if lander.y + lander.height // 2 >= terrain_y:
                     return 'crashed'
-        
+        # Check for the ground beyond the terrain lines
+        if lander.y + lander.height // 2 >= HEIGHT:
+            return 'crashed'
         # Check landing pad collision
-        if difficulty == 'hard':
+        if landing_pads:
             for pad_x, pad_y, pad_width in landing_pads:
                 if pad_x <= lander.x <= pad_x + pad_width and lander.y + lander.height // 2 >= pad_y:
                     if safe_landing(lander):
                         return 'landed'
                     else:
                         return 'crashed'
-    
+    else:
+        if lander.y + lander.height // 2 >= HEIGHT:
+            return 'crashed'
     return None
 
 # Determine if the landing is safe
