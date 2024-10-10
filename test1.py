@@ -1,5 +1,6 @@
 import pygame
 import math
+import itertools
 
 # Initialize Pygame
 pygame.init()
@@ -34,6 +35,17 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+
+# ASCII Art Stars for Animated Background
+ascii_stars = [
+    "     .    ",
+    "   .      ",
+    "      .   ",
+    "   .    . ",
+    "       .  ",
+]
+star_positions = list(itertools.product(range(0, WIDTH, 100), range(0, HEIGHT, 100)))
 
 # Lander class
 class Lander:
@@ -41,7 +53,7 @@ class Lander:
         import random
         self.x = random.randint(50, WIDTH - 50)  # Random x position within screen bounds (leaving margin)
         self.y = random.randint(50, HEIGHT // 2)  # Random y position above a certain threshold (upper half of screen)
-        self.angle = random.uniform(-math.pi / 4, math.pi / 4)  # Random angle between -45 and 45 degrees
+        self.angle = random.uniform(-math.pi / 2, math.pi / 2)  # Random angle between -45 and 45 degrees
         
         self.vx = 0
         self.vy = 0
@@ -115,6 +127,14 @@ def draw_fuel_gauge(screen, fuel):
     fuel_text = font.render(f'Fuel: {fuel}', True, BLACK)
     screen.blit(fuel_text, (10, 10))
 
+# Draw animated background with ASCII art stars
+def draw_animated_background(screen, frame):
+    for (x, y), star_pattern in zip(star_positions, itertools.cycle(ascii_stars)):
+        star_text = star_pattern[frame // 10 % len(star_pattern)]
+        font = pygame.font.SysFont(None, 24)
+        star_surface = font.render(star_text, True, BLUE)
+        screen.blit(star_surface, (x, y))
+
 # Check for collisions
 def check_collision(lander):
     if lander.y + lander.height // 2 > 550:  # Hit the ground
@@ -132,11 +152,11 @@ def title_screen():
     selected_difficulty = None
 
     while running:
-        screen.fill(WHITE)
-        title_text = font.render('Lunar Lander - Select Difficulty', True, BLACK)
-        easy_text = font.render('1. Easy', True, BLACK)
-        medium_text = font.render('2. Medium', True, BLACK)
-        hard_text = font.render('3. Hard', True, BLACK)
+        screen.fill(BLACK)
+        title_text = font.render('Lunar Lander - Select Difficulty', True, WHITE)
+        easy_text = font.render('1. Easy', True, WHITE)
+        medium_text = font.render('2. Medium', True, WHITE)
+        hard_text = font.render('3. Hard', True, WHITE)
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 100))
         screen.blit(easy_text, (WIDTH // 2 - easy_text.get_width() // 2, 200))
         screen.blit(medium_text, (WIDTH // 2 - medium_text.get_width() // 2, 300))
@@ -184,7 +204,7 @@ def game_loop(gravity, thrust):
     lander = Lander(gravity, thrust)
     running = True
     game_result = None
-    landed = False 
+    frame = 0
 
     while running:
         for event in pygame.event.get():
@@ -224,12 +244,15 @@ def game_loop(gravity, thrust):
             running = False
 
         # Redraw screen
-        screen.fill(WHITE)
+        screen.fill(BLACK)
+        draw_animated_background(screen, frame)
+        draw_terrain(screen)
         draw_terrain(screen)
         lander.draw(screen)
         draw_fuel_gauge(screen, lander.fuel)
         pygame.display.flip()
 
+        frame += 1
         clock.tick(60)
 
     return game_result
