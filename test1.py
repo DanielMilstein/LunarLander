@@ -24,7 +24,7 @@ if background_music:
 # Game Constants
 WIDTH, HEIGHT = 800, 600
 ROTATION_SPEED = 0.1
-MAX_FUEL = 100
+MAX_FUEL = 300
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -74,8 +74,8 @@ class Lander:
 
     def apply_thrust(self):
         if self.fuel > 0:
-            thrust_x = -math.sin(self.angle) * self.thrust
-            thrust_y = math.cos(self.angle) * self.thrust
+            thrust_x = math.sin(self.angle) * self.thrust
+            thrust_y = -math.cos(self.angle) * self.thrust
             self.vx += thrust_x
             self.vy += thrust_y
             self.fuel -= 1
@@ -108,9 +108,16 @@ class Lander:
         screen.blit(rotated_image, new_rect.topleft)
 
 # Draw terrain and landing pad
-def draw_terrain(screen):
-    pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
-    pygame.draw.rect(screen, WHITE, (350, 550, 100, 10))
+def draw_terrain(screen, difficulty):
+    if difficulty == 'easy':
+        pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
+        pygame.draw.rect(screen, WHITE, (350, 550, 100, 10))
+    elif difficulty == 'medium':
+        pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
+        pygame.draw.rect(screen, RED, (300, 550, 200, 10))
+    elif difficulty == 'hard':
+        pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
+        pygame.draw.polygon(screen, RED, [(200, 550), (300, 540), (400, 550), (500, 540), (600, 550)])
 
 # Draw fuel gauge
 def draw_fuel_gauge(screen, fuel):
@@ -129,38 +136,35 @@ def draw_animated_background(screen, frame):
 # Check for collisions
 def check_collision(lander):
     if lander.y + lander.height // 2 > 550:
-        return True
-    return False
+        if 350 <= lander.x <= 450:
+            if safe_landing(lander):
+                return 'landed'
+            else:
+                return 'crashed'
+        else:
+            return 'crashed'
+    return None
 
 # Determine if the landing is safe
 def safe_landing(lander):
-    return abs(lander.vx) < 0.5 and abs(lander.vy) < 1.0 and -0.1 < lander.angle < 0.1
-
-def calculate_score(lander):
-    fuel_score = lander.fuel * 10  # Pondera el combustible
-    angle_penalty = abs(lander.angle) * 100  # Penalización por ángulo
-    score = int(fuel_score - angle_penalty)
-    return max(score, 0)  # Asegura que el puntaje mínimo sea 0
+    return abs(lander.vx) < 0.5 and abs(lander.vy) < 1.0 and -0.3 < lander.angle < 0.3
 
 # Title screen where player selects difficulty
 def title_screen():
     font = pygame.font.SysFont(None, 48)
     running = True
+    selected_difficulty = None
 
     while running:
         screen.fill(WHITE)
-        title_text = font.render('Lunar Lander', True, BLACK)
-        instruction_text = font.render('Please choose the difficulty:', True, BLACK)
+        title_text = font.render('Lunar Lander - Select Difficulty', True, BLACK)
         easy_text = font.render('1. Easy', True, BLACK)
         medium_text = font.render('2. Medium', True, BLACK)
         hard_text = font.render('3. Hard', True, BLACK)
-        back_text = font.render('Q - Quit', True, BLACK)
         screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, 100))
-        screen.blit(instruction_text, (WIDTH // 2 - instruction_text.get_width() // 2, 150))
         screen.blit(easy_text, (WIDTH // 2 - easy_text.get_width() // 2, 200))
-        screen.blit(medium_text, (WIDTH // 2 - medium_text.get_width() // 2, 250))
-        screen.blit(hard_text, (WIDTH // 2 - hard_text.get_width() // 2, 300))
-        screen.blit(back_text, (WIDTH // 2 - back_text.get_width() // 2, 400))
+        screen.blit(medium_text, (WIDTH // 2 - medium_text.get_width() // 2, 300))
+        screen.blit(hard_text, (WIDTH // 2 - hard_text.get_width() // 2, 400))
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -176,7 +180,11 @@ def title_screen():
                 elif event.key == pygame.K_q:
                     return 'quit'
 
-# End screen to show result and offer to play again, return to menu, or quit
+def calculate_score(lander):
+    return MAX_FUEL + lander.fuel
+
+
+# End screen to show result and offer to play again or quit
 def end_screen(message, score):
     font = pygame.font.SysFont(None, 48)
     running = True
@@ -185,14 +193,10 @@ def end_screen(message, score):
         screen.fill(WHITE)
         result_text = font.render(message, True, BLACK)
         score_text = font.render(f'Score: {score}', True, BLACK)
-        play_again_text = font.render('Enter to play again.', True, BLACK)
-        quit_text = font.render('Q for quit.', True, BLACK)
-        
+        play_again_text = font.render('Press Enter to play again or Q to quit', True, BLACK)
         screen.blit(result_text, (WIDTH // 2 - result_text.get_width() // 2, 150))
         screen.blit(score_text, (WIDTH // 2 - score_text.get_width() // 2, 200))
         screen.blit(play_again_text, (WIDTH // 2 - play_again_text.get_width() // 2, 250))
-        screen.blit(quit_text, (WIDTH // 2 - quit_text.get_width() // 2, 350))
-        
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -205,7 +209,7 @@ def end_screen(message, score):
                     return 'quit'
 
 # Main game loop
-def game_loop(gravity, thrust):
+def game_loop(gravity, thrust, difficulty):
     lander = Lander(gravity, thrust)
     running = True
     game_result = None
@@ -226,29 +230,33 @@ def game_loop(gravity, thrust):
         if keys[pygame.K_SPACE] and lander.fuel > 0:
             lander.apply_thrust()
             if thrust_channel is None or not thrust_channel.get_busy():
-                thrust_channel = thrust_sound.play()
+                thrust_channel = thrust_sound.play(-1)
         else:
-            thrust_sound.stop()
+            if thrust_channel is not None and thrust_channel.get_busy():
+                thrust_channel.stop()
 
         # Update game state
         lander.update(keys)
 
         # Check for collisions
-        if check_collision(lander):
-            if 350 <= lander.x <= 450 and safe_landing(lander):
-                if landing_sound:
-                    landing_sound.play()
-                game_result = 'landed'
-            else:
-                crash_sound.play()
-                game_result = 'crashed'
+        collision_result = check_collision(lander)
+        if collision_result == 'landed':
+            if landing_sound:
+                landing_sound.play()
+            game_result = 'landed'
+            running = False
+        elif collision_result == 'crashed':
+            crash_sound.play()
+            game_result = 'crashed'
             running = False
 
+        if thrust_channel is not None and not running:
+            thrust_channel.stop()
+
         # Redraw screen
-        screen.fill(BLACK)
+        screen.fill(WHITE)
         draw_animated_background(screen, frame)
-        draw_terrain(screen)
-        draw_terrain(screen)
+        draw_terrain(screen, difficulty)
         lander.draw(screen)
         draw_fuel_gauge(screen, lander.fuel)
 
@@ -267,16 +275,16 @@ def main():
     while running:
         difficulty = title_screen()
         if difficulty == 'easy':
-            gravity, thrust = 0.1, 0.15
+            gravity, thrust = 0.01, 0.15
         elif difficulty == 'medium':
-            gravity, thrust = 0.15, 0.12
+            gravity, thrust = 0.05, 0.15
         elif difficulty == 'hard':
-            gravity, thrust = 0.2, 0.1
+            gravity, thrust = 0.1, 0.15
         elif difficulty == 'quit':
             running = False
             break
 
-        game_result = game_loop(gravity, thrust)
+        game_result = game_loop(gravity, thrust, difficulty)
         if game_result == 'quit':
             running = False
 
