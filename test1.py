@@ -117,14 +117,14 @@ def draw_terrain(screen, difficulty):
         pygame.draw.lines(screen, WHITE, False, [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550),
                                                  (500, 530), (600, 550), (700, 520), (WIDTH, 550)], 2)
         # Adding flat landing pads for medium level
-        pygame.draw.rect(screen, WHITE, (150, 530, 40, 10))
-        pygame.draw.rect(screen, WHITE, (500, 530, 40, 10))
+        pygame.draw.rect(screen, WHITE, (150, 530, 80, 10))
+        pygame.draw.rect(screen, WHITE, (500, 530, 80, 10))
     elif difficulty == 'hard':
         pygame.draw.rect(screen, GREEN, (0, 550, WIDTH, 50))
         pygame.draw.lines(screen, WHITE, False, [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480),
                                                  (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)], 2)
         # Adding flat landing pads
-        pygame.draw.rect(screen, WHITE, (100, 520, 40, 10))
+        pygame.draw.rect(screen, WHITE, (100, 500, 40, 10))
         pygame.draw.rect(screen, WHITE, (400, 480, 40, 10))
         pygame.draw.rect(screen, WHITE, (650, 500, 40, 10))
 
@@ -157,11 +157,11 @@ def check_collision(lander, difficulty):
     elif difficulty == 'medium':
         terrain_points = [(0, 550), (100, 530), (200, 550), (300, 520), (400, 550),
                           (500, 530), (600, 550), (700, 520), (WIDTH, 550)]
-        landing_pads = [(150, 530, 40), (500, 530, 40)]
+        landing_pads = [(150, 530, 80), (500, 530, 80)]
     elif difficulty == 'hard':
         terrain_points = [(0, 550), (50, 540), (150, 500), (250, 520), (350, 480),
                           (450, 500), (550, 460), (650, 500), (750, 520), (WIDTH, 550)]
-        landing_pads = [(100, 520, 40), (400, 480, 40), (650, 500, 40)]
+        landing_pads = [(100, 500, 40), (400, 480, 40), (650, 500, 40)]
 
     if terrain_points:
         # Check collision with terrain lines
@@ -198,9 +198,9 @@ def safe_landing(lander):
 # Title screen where player selects difficulty
 def title_screen():
     font = pygame.font.SysFont(None, 48)
+    instruction_font = pygame.font.SysFont(None, 32)
     running = True
     selected_difficulty = None
-
     while running:
         screen.fill(WHITE)
         title_text = font.render('Lunar Lander - Select Difficulty', True, BLACK)
@@ -211,6 +211,20 @@ def title_screen():
         screen.blit(easy_text, (WIDTH // 2 - easy_text.get_width() // 2, 200))
         screen.blit(medium_text, (WIDTH // 2 - medium_text.get_width() // 2, 300))
         screen.blit(hard_text, (WIDTH // 2 - hard_text.get_width() // 2, 400))
+        # Instructions
+        instructions = [
+            'Press 1, 2, or 3 to select a difficulty level:',
+            '1. Easy - Gentle terrain with a single landing pad',
+            '2. Medium - Moderate terrain with multiple landing pads',
+            '3. Hard - Rugged terrain with challenging landing pads',
+            '',
+            'Use arrow keys (LEFT and RIGHT) to rotate the lander.',
+            'Hold SPACE to apply thrust.',
+            'Press Q to quit at any time.'
+        ]
+        for i, line in enumerate(instructions):
+            instruction_text = instruction_font.render(line, True, BLACK)
+            screen.blit(instruction_text, (WIDTH // 2 - instruction_text.get_width() // 2, 450 + i * 30))
         pygame.display.flip()
 
         for event in pygame.event.get():
@@ -323,9 +337,9 @@ def main():
         if difficulty == 'easy':
             gravity, thrust = 0.01, 0.15
         elif difficulty == 'medium':
-            gravity, thrust = 0.01, 0.15
+            gravity, thrust = 0.03, 0.15
         elif difficulty == 'hard':
-            gravity, thrust = 0.01, 0.15
+            gravity, thrust = 0.05, 0.15
         elif difficulty == 'quit':
             running = False
             break
